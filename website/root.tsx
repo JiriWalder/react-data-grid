@@ -10,6 +10,8 @@ import CommonFeatures from './demos/CommonFeatures';
 import AllFeatures from './demos/AllFeatures';
 import CellNavigation from './demos/CellNavigation';
 import ColumnSpanning from './demos/ColumnSpanning';
+import RowSpanning from './demos/RowSpanning';
+import MoreHeaders from './demos/MoreHeaders';
 import ColumnsReordering from './demos/ColumnsReordering';
 import CustomizableComponents from './demos/CustomizableComponents';
 import ContextMenuDemo from './demos/ContextMenu';
@@ -90,6 +92,8 @@ function Root() {
       <main className={mainClassname} dir={direction}>
         <Routes>
           <Route index element={<Navigate to="common-features" replace />} />
+          <Route path="row-spanning" element={<RowSpanning direction={direction} />} />
+          <Route path="more-headers" element={<MoreHeaders direction={direction} />} />
           <Route path="common-features" element={<CommonFeatures direction={direction} />} />
           <Route path="all-features" element={<AllFeatures direction={direction} />} />
           <Route path="cell-navigation" element={<CellNavigation direction={direction} />} />
@@ -123,3 +127,4 @@ createRoot(document.getElementById('root')!).render(
     <Root />
   </StrictMode>
 );
+export default Root;

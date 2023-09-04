@@ -24,10 +24,13 @@ const cellDraggedOverClassname = `rdg-cell-dragged-over ${cellDraggedOver}`;
 function Cell<R, SR>({
   column,
   colSpan,
+  rowSpan,
   isCellSelected,
   isCopied,
   isDraggedOver,
   row,
+  rowIdx,
+  gridRowStart,
   dragHandle,
   onRowClick,
   onRowDoubleClick,
@@ -38,13 +41,21 @@ function Cell<R, SR>({
   const { ref, tabIndex, onFocus } = useRovingCellRef(isCellSelected);
 
   const { cellClass } = column;
+  const { styleCellClass } = column;
+  const injectedClassName =
+    typeof styleCellClass === 'function' ? styleCellClass(row, column) : null;
+
   const className = getCellClassname(
     column,
     {
       [cellCopiedClassname]: isCopied,
       [cellDraggedOverClassname]: isDraggedOver
     },
-    typeof cellClass === 'function' ? cellClass(row) : cellClass
+    injectedClassName == null
+      ? typeof cellClass === 'function'
+        ? cellClass(row)
+        : cellClass
+      : injectedClassName
   );
 
   function selectCellWrapper(openEditor?: boolean | null) {
@@ -71,11 +82,12 @@ function Cell<R, SR>({
       aria-colindex={column.idx + 1} // aria-colindex is 1-based
       aria-selected={isCellSelected}
       aria-colspan={colSpan}
+      aria-rowspan={rowSpan}
       aria-readonly={!isCellEditable(column, row) || undefined}
       ref={ref}
       tabIndex={tabIndex}
       className={className}
-      style={getCellStyle(column, colSpan)}
+      style={getCellStyle(column, colSpan, gridRowStart, rowSpan)}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}

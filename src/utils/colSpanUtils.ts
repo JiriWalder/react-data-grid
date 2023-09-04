@@ -1,4 +1,4 @@
-import type { CalculatedColumn, ColSpanArgs } from '../types';
+import type { CalculatedColumn, ColSpanArgs, RowSpanArgs } from '../types';
 
 export function getColSpan<R, SR>(
   column: CalculatedColumn<R, SR>,

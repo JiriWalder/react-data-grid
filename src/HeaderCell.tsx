@@ -38,6 +38,7 @@ export interface HeaderCellProps<R, SR> extends SharedHeaderRowProps<R, SR> {
   column: CalculatedColumn<R, SR>;
   colSpan: number | undefined;
   isCellSelected: boolean;
+  headerInx?: number;
 }
 
 export default function HeaderCell<R, SR>({
@@ -51,7 +52,8 @@ export default function HeaderCell<R, SR>({
   onSortColumnsChange,
   selectCell,
   shouldFocusGrid,
-  direction
+  direction,
+  headerInx
 }: HeaderCellProps<R, SR>) {
   const isRtl = direction === 'rtl';
   const { ref, tabIndex, onFocus } = useRovingCellRef(isCellSelected);
@@ -191,6 +193,7 @@ export default function HeaderCell<R, SR>({
         allRowsSelected={allRowsSelected}
         onAllRowsSelectionChange={onAllRowsSelectionChange}
         isCellSelected={isCellSelected}
+        headerInx={headerInx}
       />
     </div>
   );

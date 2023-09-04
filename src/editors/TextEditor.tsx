@@ -1,6 +1,6 @@
 import { css } from '@linaria/core';
 import type { EditorProps } from '../types';
-
+import userEvent from '@testing-library/user-event';
 const textEditor = css`
   appearance: none;
 
@@ -48,6 +48,13 @@ export default function TextEditor<TRow, TSummaryRow>({
       value={row[column.key as keyof TRow] as unknown as string}
       onChange={(event) => onRowChange({ ...row, [column.key]: event.target.value })}
       onBlur={() => onClose(true)}
+      onKeyDown={(e) => {
+        //console.log(e);
+        if (e.key === 'Enter') {
+          e.stopPropagation();
+          userEvent.keyboard('{arrowdown}');
+        }
+      }}
     />
   );
 }

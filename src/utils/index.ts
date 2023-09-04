@@ -1,5 +1,4 @@
-import type { CalculatedColumn } from '../types';
-
+import type { CalculatedColumn, ColSpanArgs, RowSpanArgs } from '../types';
 export * from './colSpanUtils';
 export * from './domUtils';
 export * from './keyboardUtils';
@@ -28,4 +27,15 @@ export function clampColumnWidth<R, SR>(
   }
 
   return width;
+}
+export function getRowSpan<R, SR>(
+  column: CalculatedColumn<R, SR>,
+  lastFrozenColumnIndex: number,
+  args: RowSpanArgs<R, SR>
+): number[] | undefined {
+  const rowSpan = typeof column.rowSpan === 'function' ? column.rowSpan(args) : undefined;
+  if (rowSpan && Array.isArray(rowSpan)) {
+    return rowSpan;
+  }
+  return undefined;
 }

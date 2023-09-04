@@ -6,7 +6,7 @@ export type Maybe<T> = T | undefined | null;
 
 export interface Column<TRow, TSummaryRow = unknown> {
   /** The name of the column. By default it will be displayed in the header cell */
-  readonly name: string | ReactElement;
+  readonly name: string | ReactElement | string[];
   /** A unique key to distinguish each column */
   readonly key: string;
   /** Column width. If not specified, it will be determined automatically based on grid width and specified widths of other columns */
@@ -15,7 +15,6 @@ export interface Column<TRow, TSummaryRow = unknown> {
   readonly minWidth?: Maybe<number>;
   /** Maximum column width in px. */
   readonly maxWidth?: Maybe<number>;
-  readonly cellClass?: Maybe<string | ((row: TRow) => Maybe<string>)>;
   readonly headerCellClass?: Maybe<string>;
   readonly summaryCellClass?: Maybe<string | ((row: TSummaryRow) => Maybe<string>)>;
   /** Formatter to be used to render the cell content */
@@ -27,6 +26,8 @@ export interface Column<TRow, TSummaryRow = unknown> {
   /** Enables cell editing. If set and no editor property specified, then a textinput will be used as the cell editor */
   readonly editable?: Maybe<boolean | ((row: TRow) => boolean)>;
   readonly colSpan?: Maybe<(args: ColSpanArgs<TRow, TSummaryRow>) => Maybe<number>>;
+  readonly rowSpan?: Maybe<(args: RowSpanArgs<TRow, TSummaryRow>) => Maybe<number[]>>;
+
   /** Determines whether column is frozen or not */
   readonly frozen?: Maybe<boolean>;
   /** Enable resizing of a column */
@@ -51,6 +52,10 @@ export interface Column<TRow, TSummaryRow = unknown> {
   }>;
   /** Header renderer for each header cell */
   readonly headerRenderer?: Maybe<ComponentType<HeaderRendererProps<TRow, TSummaryRow>>>;
+  readonly cellClass?: Maybe<string | ((row: TRow) => Maybe<string>)>;
+  readonly styleCellClass?: Maybe<
+    string | ((row: TRow, column: Column<TRow, TSummaryRow>) => Maybe<string>)
+  >;
 }
 
 export interface CalculatedColumn<TRow, TSummaryRow = unknown> extends Column<TRow, TSummaryRow> {
@@ -107,6 +112,7 @@ export interface HeaderRendererProps<TRow, TSummaryRow = unknown> {
   allRowsSelected: boolean;
   onAllRowsSelectionChange: (checked: boolean) => void;
   isCellSelected: boolean;
+  headerInx?: number | undefined;
 }
 
 export interface CellRendererProps<TRow, TSummaryRow>
@@ -117,6 +123,9 @@ export interface CellRendererProps<TRow, TSummaryRow>
     Omit<React.HTMLAttributes<HTMLDivElement>, 'style' | 'children'> {
   column: CalculatedColumn<TRow, TSummaryRow>;
   colSpan: number | undefined;
+  rowSpan: number | undefined;
+  rowIdx: number | undefined;
+  gridRowStart: number | undefined;
   row: TRow;
   isCopied: boolean;
   isDraggedOver: boolean;
@@ -201,10 +210,13 @@ export type CellNavigationMode = 'NONE' | 'CHANGE_ROW' | 'LOOP_OVER_ROW';
 export type SortDirection = 'ASC' | 'DESC';
 
 export type ColSpanArgs<TRow, TSummaryRow> =
-  | { type: 'HEADER' }
+  | { type: 'HEADER'; headerInx: number | undefined }
   | { type: 'ROW'; row: TRow }
   | { type: 'SUMMARY'; row: TSummaryRow };
-
+export type RowSpanArgs<TRow, TSummaryRow> =
+  | { type: 'HEADER'; headerInx: number | undefined }
+  | { type: 'ROW'; row: TRow }
+  | { type: 'SUMMARY'; row: TSummaryRow };
 export type RowHeightArgs<TRow> =
   | { type: 'ROW'; row: TRow }
   | { type: 'GROUP'; row: GroupRow<TRow> };
