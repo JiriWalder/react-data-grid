@@ -4,7 +4,7 @@ import { css } from '@linaria/core';
 
 import HeaderCell from './HeaderCell';
 import type { CalculatedColumn, Direction } from './types';
-import { getColSpan, getRowStyle } from './utils';
+import { getColSpan, getRowHeaderStyle } from './utils';
 import type { DataGridProps } from './DataGrid';
 import { cell, cellFrozen, rowSelectedClassname } from './style';
 
@@ -14,6 +14,7 @@ type SharedDataGridProps<R, SR, K extends React.Key> = Pick<
 >;
 
 export interface HeaderRowProps<R, SR, K extends React.Key> extends SharedDataGridProps<R, SR, K> {
+  rowIdx: number;
   columns: readonly CalculatedColumn<R, SR>[];
   allRowsSelected: boolean;
   onAllRowsSelectionChange: (checked: boolean) => void;
@@ -23,6 +24,8 @@ export interface HeaderRowProps<R, SR, K extends React.Key> extends SharedDataGr
   selectedCellIdx: number | undefined;
   shouldFocusGrid: boolean;
   direction: Direction;
+  headerInx?: number | undefined;
+  height?: number;
 }
 
 const headerRow = css`
@@ -35,7 +38,7 @@ const headerRow = css`
     /* Should have a higher value than 1 to show up above frozen cells */
     z-index: 2;
     position: sticky;
-    inset-block-start: 0;
+    inset-block-start: var(--rdg-header-row-start, 0px);
   }
 
   > .${cellFrozen} {
@@ -46,6 +49,7 @@ const headerRow = css`
 const headerRowClassname = `rdg-header-row ${headerRow}`;
 
 function HeaderRow<R, SR, K extends React.Key>({
+  rowIdx,
   columns,
   allRowsSelected,
   onAllRowsSelectionChange,
@@ -56,12 +60,14 @@ function HeaderRow<R, SR, K extends React.Key>({
   selectedCellIdx,
   selectCell,
   shouldFocusGrid,
-  direction
+  direction,
+ headerInx,
+  height
 }: HeaderRowProps<R, SR, K>) {
   const cells = [];
   for (let index = 0; index < columns.length; index++) {
     const column = columns[index];
-    const colSpan = getColSpan(column, lastFrozenColumnIndex, { type: 'HEADER' });
+    const colSpan = getColSpan(column, lastFrozenColumnIndex, { type: 'HEADER', headerInx });
     if (colSpan !== undefined) {
       index += colSpan - 1;
     }
@@ -71,6 +77,7 @@ function HeaderRow<R, SR, K extends React.Key>({
         key={column.key}
         column={column}
         colSpan={colSpan}
+        rowIdx={rowIdx}
         isCellSelected={selectedCellIdx === column.idx}
         onColumnResize={onColumnResize}
         allRowsSelected={allRowsSelected}
@@ -80,6 +87,7 @@ function HeaderRow<R, SR, K extends React.Key>({
         selectCell={selectCell}
         shouldFocusGrid={shouldFocusGrid && index === 0}
         direction={direction}
+        headerInx={headerInx}
       />
     );
   }
@@ -88,10 +96,11 @@ function HeaderRow<R, SR, K extends React.Key>({
     <div
       role="row"
       aria-rowindex={1} // aria-rowindex is 1 based
+      aria-rowindex={headerInx} // aria-rowindex is 1 based
       className={clsx(headerRowClassname, {
         [rowSelectedClassname]: selectedCellIdx === -1
       })}
-      style={getRowStyle(1)}
+      style={getRowHeaderStyle(headerInx, height)}
     >
       {cells}
     </div>

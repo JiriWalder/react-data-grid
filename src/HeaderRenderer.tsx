@@ -29,9 +29,17 @@ export default function HeaderRenderer<R, SR>({
   sortDirection,
   priority,
   onSort,
-  isCellSelected
+  isCellSelected,
+  headerInx
 }: HeaderRendererProps<R, SR>) {
-  if (!column.sortable) return <>{column.name}</>;
+  console.log(`headerInx:${headerInx}`);
+  if (!column.sortable) {
+    if (Array.isArray(column.name)) {
+      return <>{(column.name as array)[headerInx - 1]}</>;
+    }
+
+    return <>{column.name}</>;
+  }
 
   return (
     <SortableHeaderCell

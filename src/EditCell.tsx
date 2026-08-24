@@ -102,7 +102,6 @@ export default function EditCell<R, SR>({
     !column.editorOptions?.renderFormatter && cellEditing,
     typeof cellClass === 'function' ? cellClass(row) : cellClass
   );
-
   return (
     <div
       role="gridcell"

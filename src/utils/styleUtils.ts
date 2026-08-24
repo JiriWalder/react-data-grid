@@ -13,16 +13,38 @@ export function getRowStyle(rowIdx: number, height?: number): CSSProperties {
   }
   return { '--rdg-grid-row-start': rowIdx } as unknown as CSSProperties;
 }
-
+export function getRowHeaderStyle(rowIdx: number, height?: number): CSSProperties {
+  if (height !== undefined) {
+    return {
+      '--rdg-grid-row-start': rowIdx,
+      '--rdg-row-height': `${height}px`,
+      '--rdg-header-row-start': `${(rowIdx - 1) * height}px`
+    } as unknown as CSSProperties;
+  }
+  return {
+    '--rdg-grid-row-start': rowIdx,
+    '--rdg-header-row-start': `${(rowIdx - 1) * height}px`
+  } as unknown as CSSProperties;
+}
 export function getCellStyle<R, SR>(
   column: CalculatedColumn<R, SR>,
-  colSpan?: number
+  colSpan?: number,
+  gridRowStart?: number | undefined,
+  rowSpan?: number,
+  myCellStyle?: unknown
 ): React.CSSProperties {
-  return {
+  let rowi;
+  if (gridRowStart) rowi = gridRowStart;
+
+  const style = {
+    gridRowStart: rowSpan !== undefined ? `${rowi}` : undefined,
+    gridRowEnd: rowSpan !== undefined ? `span ${rowSpan}` : undefined,
     gridColumnStart: column.idx + 1,
     gridColumnEnd: colSpan !== undefined ? `span ${colSpan}` : undefined,
+
     insetInlineStart: column.frozen ? `var(--rdg-frozen-left-${column.idx})` : undefined
   };
+  return { ...style, ...myCellStyle };
 }
 
 export function getCellClassname<R, SR>(

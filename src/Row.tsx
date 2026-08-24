@@ -4,7 +4,7 @@ import clsx from 'clsx';
 
 import Cell from './Cell';
 import { RowSelectionProvider, useLatestFunc } from './hooks';
-import { getColSpan, getRowStyle } from './utils';
+import { getRowSpan, getColSpan, getRowStyle } from './utils';
 import { rowClassname, rowSelectedClassname } from './style';
 import type { RowRendererProps } from './types';
 
@@ -59,12 +59,21 @@ function Row<R, SR>(
     const column = viewportColumns[index];
     const { idx } = column;
     const colSpan = getColSpan(column, lastFrozenColumnIndex, { type: 'ROW', row });
+    const rowspan: number[] | undefined = getRowSpan(column, lastFrozenColumnIndex, {
+      type: 'ROW',
+      row
+    });
     if (colSpan !== undefined) {
       index += colSpan - 1;
     }
 
     const isCellSelected = selectedCellIdx === idx;
 
+    if (!rowspan || rowspan[0] === 1) {
+      let rowspanUse: number | undefined;
+      if (rowspan) {
+        rowspanUse = rowspan[1];
+      }
     if (isCellSelected && selectedCellEditor) {
       cells.push(selectedCellEditor);
     } else {
@@ -73,6 +82,8 @@ function Row<R, SR>(
           key={column.key}
           column={column}
           colSpan={colSpan}
+rowSpan={rowspanUse}
+            gridRowStart={gridRowStart}
           row={row}
           isCopied={copiedCellIdx === idx}
           isDraggedOver={draggedOverCellIdx === idx}
@@ -84,6 +95,7 @@ function Row<R, SR>(
           selectCell={selectCell}
         />
       );
+    }
     }
   }
 

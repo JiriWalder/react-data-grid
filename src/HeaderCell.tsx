@@ -1,9 +1,17 @@
 import { css } from '@linaria/core';
 
+import {
+  clampColumnWidth,
+  getCellClassname,
+  getCellStyle,
+  getHeaderCellRowSpan,
+  getHeaderCellStyle,
+  stopPropagation
+} from './utils';
 import type { CalculatedColumn, SortColumn } from './types';
 import type { HeaderRowProps } from './HeaderRow';
 import DefaultHeaderRenderer from './HeaderRenderer';
-import { getCellStyle, getCellClassname, clampColumnWidth } from './utils';
+
 import { useRovingCellRef } from './hooks';
 
 const cellResizable = css`
@@ -37,12 +45,15 @@ type SharedHeaderRowProps<R, SR> = Pick<
 export interface HeaderCellProps<R, SR> extends SharedHeaderRowProps<R, SR> {
   column: CalculatedColumn<R, SR>;
   colSpan: number | undefined;
+  rowIdx: number;
   isCellSelected: boolean;
+  headerInx?: number;
 }
 
 export default function HeaderCell<R, SR>({
   column,
   colSpan,
+  rowIdx,
   isCellSelected,
   onColumnResize,
   allRowsSelected,
@@ -51,9 +62,11 @@ export default function HeaderCell<R, SR>({
   onSortColumnsChange,
   selectCell,
   shouldFocusGrid,
-  direction
+  direction,
+  headerInx
 }: HeaderCellProps<R, SR>) {
   const isRtl = direction === 'rtl';
+  const rowSpan = getHeaderCellRowSpan(column, rowIdx);
   const { ref, tabIndex, onFocus } = useRovingCellRef(isCellSelected);
   const sortIndex = sortColumns?.findIndex((sort) => sort.columnKey === column.key);
   const sortColumn =
@@ -169,6 +182,7 @@ export default function HeaderCell<R, SR>({
       aria-selected={isCellSelected}
       aria-sort={ariaSort}
       aria-colspan={colSpan}
+      aria-rowspan={rowSpan}
       ref={ref}
       // set the tabIndex to 0 when there is no selected cell so grid can receive focus
       tabIndex={shouldFocusGrid ? 0 : tabIndex}
@@ -191,6 +205,7 @@ export default function HeaderCell<R, SR>({
         allRowsSelected={allRowsSelected}
         onAllRowsSelectionChange={onAllRowsSelectionChange}
         isCellSelected={isCellSelected}
+        headerInx={headerInx}
       />
     </div>
   );

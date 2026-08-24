@@ -71,13 +71,28 @@ interface Row {
   version: string;
   available: boolean;
 }
-
+export const myRowClass = css`
+   {
+    padding-right: 2;
+    padding-left: 2;
+    text-align: right;
+    font-family: Courier New;
+    font-weight: bold;
+  }
+`;
 function getColumns(countries: string[], direction: Direction): readonly Column<Row, SummaryRow>[] {
   return [
     SelectColumn,
     {
       key: 'id',
-      name: 'ID',
+      name: (
+        <>
+          ID <br /> dd
+        </>
+      ),
+      styleCellClass(x: unknown, y: unknown) {
+        return myRowClass;
+      },
       width: 60,
       frozen: true,
       resizable: false,
@@ -90,7 +105,22 @@ function getColumns(countries: string[], direction: Direction): readonly Column<
       name: 'Task',
       width: 120,
       frozen: true,
+
       editor: TextEditor,
+      editorOptions: {
+        editOnClick: true,
+        onNavigation(event: React.KeyboardEvent<HTMLDivElement>) {
+          switch (event.key) {
+            case 'ArrowDown':
+            case 'ArrowUp':
+            case 'ArrowLeft':
+            case 'ArrowRight':
+              return true;
+            default:
+              return false;
+          }
+        }
+      },
       summaryFormatter({ row }) {
         return <>{row.totalCount} records</>;
       }
@@ -347,6 +377,8 @@ export default function CommonFeatures({ direction }: Props) {
       rowKeyGetter={rowKeyGetter}
       columns={columns}
       rows={sortedRows}
+      headerRowHeight={20}
+      headerTextLines={2}
       defaultColumnOptions={{
         sortable: true,
         resizable: true
@@ -359,6 +391,8 @@ export default function CommonFeatures({ direction }: Props) {
       summaryRows={summaryRows}
       className="fill-grid"
       direction={direction}
+      fixTop={0}
+      fixLeft={1}
     />
   );
 

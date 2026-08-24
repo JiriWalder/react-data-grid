@@ -40,6 +40,7 @@ interface GetNextSelectedCellPositionOpts<R, SR> {
   lastFrozenColumnIndex: number;
   isCellWithinBounds: (position: Position) => boolean;
   isGroupRow: (row: R | GroupRow<R>) => row is GroupRow<R>;
+  fixLeft: number;
 }
 
 export function getSelectedCellColSpan<R, SR>({
@@ -90,7 +91,8 @@ export function getNextSelectedCellPosition<R, SR>({
   nextPosition,
   lastFrozenColumnIndex,
   isCellWithinBounds,
-  isGroupRow
+  isGroupRow,
+  fixLeft
 }: GetNextSelectedCellPositionOpts<R, SR>): Position {
   let { idx: nextIdx, rowIdx: nextRowIdx } = nextPosition;
 
@@ -133,11 +135,13 @@ export function getNextSelectedCellPosition<R, SR>({
       if (cellNavigationMode === 'CHANGE_ROW') {
         const isLastRow = nextRowIdx === maxRowIdx;
         if (!isLastRow) {
-          nextIdx = 0;
+          nextIdx = fixLeft;
           nextRowIdx += 1;
+        } else {
+          nextIdx = fixLeft;
         }
       } else {
-        nextIdx = 0;
+        nextIdx = fixLeft;
       }
     } else if (isBeforeFirstColumn) {
       if (cellNavigationMode === 'CHANGE_ROW') {

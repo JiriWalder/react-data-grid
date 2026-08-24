@@ -109,6 +109,8 @@ export default function CellNavigation({ direction }: Props) {
       <DataGrid
         columns={columns}
         rows={rows}
+        fixTop={0}
+        fixLeft={1}
         cellNavigationMode={cellNavigationMode}
         direction={direction}
       />
