@@ -72,25 +72,30 @@ export interface Column<TRow, TSummaryRow = unknown> {
   /** Sets the column sort order to be descending instead of ascending the first time the column is sorted */
   readonly sortDescendingFirst?: Maybe<boolean>;
   /** Options for cell editing */
-  readonly editorOptions?: Maybe<{
-    /**
-     * Render the cell content in addition to the edit cell content.
-     * Enable this option when the editor is rendered outside the grid, like a modal for example.
-     * By default, the cell content is not rendered when the edit cell is open.
-     * @default false
-     */
-    readonly displayCellContent?: Maybe<boolean>;
-    /**
-     * Commit changes when clicking outside the cell
-     * @default true
-     */
-    readonly commitOnOutsideClick?: Maybe<boolean>;
-    /**
-     * Close the editor when the row value changes externally
-     * @default true
-     */
-    readonly closeOnExternalRowChange?: Maybe<boolean>;
-  }>;
+  readonly editorOptions?: Maybe<
+    {
+      /**
+       * Render the cell content in addition to the edit cell content.
+       * Enable this option when the editor is rendered outside the grid, like a modal for example.
+       * By default, the cell content is not rendered when the edit cell is open.
+       * @default false
+       */
+      readonly displayCellContent?: Maybe<boolean>;
+      /**
+       * Commit changes when clicking outside the cell
+       * @default true
+       */
+      readonly commitOnOutsideClick?: Maybe<boolean>;
+      /**
+       * Close the editor when the row value changes externally
+       * @default true
+       */
+      readonly closeOnExternalRowChange?: Maybe<boolean>;
+      // Consumers may pass additional implementation-specific options through to their
+      // own renderEditCell/renderCell functions (e.g. editOnClick, move, scale).
+      readonly [key: string]: unknown;
+    } & Record<string, unknown>
+  >;
 }
 
 export interface CalculatedColumn<TRow, TSummaryRow = unknown> extends Column<TRow, TSummaryRow> {

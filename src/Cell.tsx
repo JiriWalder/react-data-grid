@@ -76,7 +76,9 @@ function Cell<R, SR>({
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
     onClick?.(event);
-    handleMouseEvent(event, onCellClick);
+    if (!handleMouseEvent(event, onCellClick) && column.editorOptions?.editOnClick) {
+      setActivePositionWrapper(true);
+    }
   }
 
   function handleDoubleClick(event: MouseEvent<HTMLDivElement>) {

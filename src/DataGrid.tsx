@@ -105,13 +105,17 @@ type SharedDivProps = Pick<
   | 'role'
   | 'aria-label'
   | 'aria-labelledby'
-  | 'aria-description'
   | 'aria-describedby'
   | 'aria-rowcount'
   | 'className'
   | 'style'
   | 'onScroll'
->;
+> & {
+  // Defined separately from the Pick above: 'aria-description' is only present in
+  // newer @types/react releases, and Pick-ing a nonexistent key breaks consumers
+  // pinned to older @types/react (e.g. React 18) with a spurious "missing property" error.
+  'aria-description'?: string | undefined;
+};
 
 export interface DataGridProps<R, SR = unknown, K extends Key = Key> extends SharedDivProps {
   ref?: Maybe<React.Ref<DataGridHandle>>;
@@ -144,6 +148,11 @@ export interface DataGridProps<R, SR = unknown, K extends Key = Key> extends Sha
    * @default 35
    */
   headerRowHeight?: Maybe<number>;
+  /**
+   * Number of text lines the header row height should accommodate, multiplies headerRowHeight
+   * @default 1
+   */
+  headerTextLines?: Maybe<number>;
   /**
    * Height of each summary row in pixels
    * @default 35
@@ -195,6 +204,11 @@ export interface DataGridProps<R, SR = unknown, K extends Key = Key> extends Sha
   >;
   /** Function called whenever the active position is changed */
   onActivePositionChange?: Maybe<(args: PositionChangeArgs<NoInfer<R>, NoInfer<SR>>) => void>;
+  /**
+   * Callback triggered whenever the active cell position changes (navigation, click, etc).
+   * Equivalent to onActivePositionChange but with the (rowIdx, colIdx) signature.
+   */
+  onCellNavigate?: Maybe<(rowIdx: number, colIdx: number) => void>;
   /** Callback triggered when column is resized */
   onColumnResize?: Maybe<(column: CalculatedColumn<R, SR>, width: number) => void>;
   /** Callback triggered when columns are reordered */
@@ -217,6 +231,12 @@ export interface DataGridProps<R, SR = unknown, K extends Key = Key> extends Sha
    * @default 0
    */
   fixLeft?: Maybe<number>;
+  /**
+   * Determines how keyboard navigation behaves when moving past the first or last column.
+   * 'CHANGE_ROW' wraps navigation to the next/previous row; 'NONE' clamps at the row bounds.
+   * @default 'NONE'
+   */
+  cellNavigationMode?: Maybe<CellNavigationMode>;
 
   /**
    * Miscellaneous
@@ -256,11 +276,13 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
     // Dimensions props
     rowHeight: rawRowHeight,
     headerRowHeight: rawHeaderRowHeight,
+    headerTextLines: rawHeaderTextLines,
     summaryRowHeight: rawSummaryRowHeight,
     columnWidths: columnWidthsRaw,
     onColumnWidthsChange: onColumnWidthsChangeRaw,
     fixTop: rawFixTop,
     fixLeft: rawFixLeft,
+    cellNavigationMode: rawCellNavigationMode,
     // Feature props
     selectedRows,
     isRowSelectionDisabled,
@@ -275,6 +297,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
     onCellContextMenu,
     onCellKeyDown,
     onActivePositionChange,
+    onCellNavigate,
     onScroll,
     onColumnResize,
     onColumnsReorder,
@@ -308,6 +331,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
   const role = rawRole ?? 'grid';
   const rowHeight = rawRowHeight ?? 35;
   const headerRowHeight = rawHeaderRowHeight ?? (typeof rowHeight === 'number' ? rowHeight : 35);
+  const headerTextLines = rawHeaderTextLines ?? 1;
   const summaryRowHeight = rawSummaryRowHeight ?? (typeof rowHeight === 'number' ? rowHeight : 35);
   const renderRow = renderers?.renderRow ?? defaultRenderers?.renderRow ?? defaultRenderRow;
   const renderCell = renderers?.renderCell ?? defaultRenderers?.renderCell ?? defaultRenderCell;
@@ -393,6 +417,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
   // leaving header/summary row navigation and pointer-driven selection unaffected.
   const fixTop = rawFixTop ?? 0;
   const fixLeft = rawFixLeft ?? 0;
+  const cellNavigationMode = rawCellNavigationMode ?? 'NONE';
   const minNavRowIdx = Math.max(minRowIdx, fixTop);
   const headerRowsHeight = headerRowsCount * headerRowHeight;
   const summaryRowsHeight = summaryRowsCount * summaryRowHeight;
@@ -817,7 +842,17 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
 
   function setPosition(position: Position, options?: SetActivePositionOptions): void {
     const { isPositionInActiveBounds } = validatePosition(position);
-    if (!isPositionInActiveBounds) return;
+    if (!isPositionInActiveBounds) {
+      // Nowhere to move to (e.g. pressing Enter/ArrowDown on the last row): commit the
+      // pending edit and keep focus on the current cell instead of dropping focus entirely.
+      commitEditorChanges();
+      const currentPosition: ActivePosition = { idx: activePosition.idx, rowIdx: activePosition.rowIdx, mode: 'ACTIVE' };
+      setActivePosition(currentPosition);
+      if (options?.shouldFocus) {
+        setPositionToFocus(currentPosition);
+      }
+      return;
+    }
     commitEditorChanges();
 
     const samePosition = isSamePosition(activePosition, position);
@@ -842,6 +877,10 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
         row: rows[position.rowIdx],
         column: columns[position.idx]
       });
+    }
+
+    if (onCellNavigate && !samePosition) {
+      onCellNavigate(position.rowIdx, position.idx);
     }
   }
 
@@ -902,7 +941,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
 
   function navigate(event: KeyboardEvent<HTMLDivElement>) {
     const { key, shiftKey } = event;
-    let cellNavigationMode: CellNavigationMode = 'NONE';
+    let mode: CellNavigationMode = cellNavigationMode;
     if (key === 'Tab') {
       if (
         canExitGrid({
@@ -919,7 +958,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
         return;
       }
 
-      cellNavigationMode = 'CHANGE_ROW';
+      mode = cellNavigationMode === 'NONE' ? 'CHANGE_ROW' : cellNavigationMode;
     }
 
     // prevent scrolling and do not allow focus to leave
@@ -943,7 +982,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
       maxRowIdx,
       lastStartFrozenColumnIndex,
       firstEndFrozenColumnIndex,
-      cellNavigationMode,
+      cellNavigationMode: mode,
       activePosition,
       nextPosition,
       nextPositionIsCellInActiveBounds: validatePosition(nextPosition).isCellInActiveBounds
@@ -1175,7 +1214,7 @@ export function DataGrid<R, SR = unknown, K extends Key = Key>(props: DataGridPr
     setColumnWidthsInternal(columnWidthsRaw);
   }
 
-  let templateRows = `repeat(${headerRowsCount}, ${headerRowHeight}px)`;
+  let templateRows = `repeat(${headerRowsCount}, ${headerRowHeight * headerTextLines}px)`;
   if (topSummaryRowsCount > 0) {
     templateRows += ` repeat(${topSummaryRowsCount}, ${summaryRowHeight}px)`;
   }
