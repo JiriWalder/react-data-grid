@@ -87,11 +87,16 @@ export default function Nav({ direction, onDirectionChange }: Props) {
       <NavLink to="/column-spanning" end className={getActiveClassname}>
         Column Spanning
       </NavLink>
+<<<<<<< HEAD
       <NavLink to="/row-spanning" end className={getActiveClassname}>
         Row Spanning
       </NavLink>
       <NavLink to="/more-headers" end className={getActiveClassname}>
         More Headers
+=======
+      <NavLink to="/column-grouping" end className={getActiveClassname}>
+        Column Grouping
+>>>>>>> ee67c19256aa837a02149140b22fd69b34ff7e23
       </NavLink>
       <NavLink to="/columns-reordering" end className={getActiveClassname}>
         Columns Reordering
@@ -99,11 +104,11 @@ export default function Nav({ direction, onDirectionChange }: Props) {
       <NavLink to="/context-menu" end className={getActiveClassname}>
         Context Menu
       </NavLink>
-      <NavLink to="/customizable-components" end className={getActiveClassname}>
-        Customizable Components
+      <NavLink to="/customizable-renderers" end className={getActiveClassname}>
+        Customizable Renderers
       </NavLink>
-      <NavLink to="/grouping" end className={getActiveClassname}>
-        Grouping
+      <NavLink to="/row-grouping" end className={getActiveClassname}>
+        Row Grouping
       </NavLink>
       <NavLink to="/header-filters" end className={getActiveClassname}>
         Header Filters
@@ -126,14 +131,17 @@ export default function Nav({ direction, onDirectionChange }: Props) {
       <NavLink to="/rows-reordering" end className={getActiveClassname}>
         Rows Reordering
       </NavLink>
-      <NavLink to="/scroll-to-row" end className={getActiveClassname}>
-        Scroll To Row
+      <NavLink to="/scroll-to-cell" end className={getActiveClassname}>
+        Scroll To Cell
       </NavLink>
       <NavLink to="/tree-view" end className={getActiveClassname}>
         Tree View
       </NavLink>
       <NavLink to="/variable-row-height" end className={getActiveClassname}>
         Variable Row Height
+      </NavLink>
+      <NavLink to="/animation" end className={getActiveClassname}>
+        Animation
       </NavLink>
 
       <h2>Links</h2>

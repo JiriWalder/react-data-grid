@@ -1,12 +1,17 @@
-import { memo, forwardRef } from 'react';
-import type { RefAttributes } from 'react';
+import { forwardRef, memo, type RefAttributes } from 'react';
 import clsx from 'clsx';
 
-import Cell from './Cell';
 import { RowSelectionProvider, useLatestFunc } from './hooks';
+<<<<<<< HEAD
 import { getRowSpan, getColSpan, getRowStyle } from './utils';
 import { rowClassname, rowSelectedClassname } from './style';
 import type { RowRendererProps } from './types';
+=======
+import { getColSpan, getRowStyle } from './utils';
+import type { CalculatedColumn, RenderRowProps } from './types';
+import Cell from './Cell';
+import { rowClassname, rowSelectedClassname } from './style/row';
+>>>>>>> ee67c19256aa837a02149140b22fd69b34ff7e23
 
 function Row<R, SR>(
   {
@@ -23,19 +28,20 @@ function Row<R, SR>(
     viewportColumns,
     selectedCellEditor,
     selectedCellDragHandle,
-    onRowClick,
-    onRowDoubleClick,
+    onCellClick,
+    onCellDoubleClick,
+    onCellContextMenu,
     rowClass,
     setDraggedOverRowIdx,
     onMouseEnter,
     onRowChange,
     selectCell,
     ...props
-  }: RowRendererProps<R, SR>,
+  }: RenderRowProps<R, SR>,
   ref: React.Ref<HTMLDivElement>
 ) {
-  const handleRowChange = useLatestFunc((newRow: R) => {
-    onRowChange(rowIdx, newRow);
+  const handleRowChange = useLatestFunc((column: CalculatedColumn<R, SR>, newRow: R) => {
+    onRowChange(column, rowIdx, newRow);
   });
 
   function handleDragEnter(event: React.MouseEvent<HTMLDivElement>) {
@@ -49,7 +55,7 @@ function Row<R, SR>(
     {
       [rowSelectedClassname]: selectedCellIdx === -1
     },
-    rowClass?.(row),
+    rowClass?.(row, rowIdx),
     className
   );
 
@@ -68,6 +74,7 @@ function Row<R, SR>(
     }
 
     const isCellSelected = selectedCellIdx === idx;
+<<<<<<< HEAD
     if (!rowspan || rowspan[0] === 1) {
       let rowspanUse: number | undefined;
       if (rowspan) {
@@ -95,6 +102,30 @@ function Row<R, SR>(
           />
         );
       }
+=======
+
+    if (isCellSelected && selectedCellEditor) {
+      cells.push(selectedCellEditor);
+    } else {
+      cells.push(
+        <Cell
+          key={column.key}
+          column={column}
+          colSpan={colSpan}
+          row={row}
+          rowIdx={rowIdx}
+          isCopied={copiedCellIdx === idx}
+          isDraggedOver={draggedOverCellIdx === idx}
+          isCellSelected={isCellSelected}
+          dragHandle={isCellSelected ? selectedCellDragHandle : undefined}
+          onClick={onCellClick}
+          onDoubleClick={onCellDoubleClick}
+          onContextMenu={onCellContextMenu}
+          onRowChange={handleRowChange}
+          selectCell={selectCell}
+        />
+      );
+>>>>>>> ee67c19256aa837a02149140b22fd69b34ff7e23
     }
   }
 
@@ -114,6 +145,12 @@ function Row<R, SR>(
   );
 }
 
-export default memo(forwardRef(Row)) as <R, SR>(
-  props: RowRendererProps<R, SR> & RefAttributes<HTMLDivElement>
+const RowComponent = memo(forwardRef(Row)) as <R, SR>(
+  props: RenderRowProps<R, SR> & RefAttributes<HTMLDivElement>
 ) => JSX.Element;
+
+export default RowComponent;
+
+export function defaultRenderRow<R, SR>(key: React.Key, props: RenderRowProps<R, SR>) {
+  return <RowComponent key={key} {...props} />;
+}

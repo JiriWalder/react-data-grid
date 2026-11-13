@@ -1,16 +1,34 @@
 import { css } from '@linaria/core';
 
+import { useRovingTabIndex } from './hooks';
+import {
+  clampColumnWidth,
+  getCellClassname,
+  getCellStyle,
+  getHeaderCellRowSpan,
+  getHeaderCellStyle,
+  stopPropagation
+} from './utils';
 import type { CalculatedColumn, SortColumn } from './types';
 import type { HeaderRowProps } from './HeaderRow';
-import DefaultHeaderRenderer from './HeaderRenderer';
-import { getCellStyle, getCellClassname, clampColumnWidth } from './utils';
-import { useRovingCellRef } from './hooks';
+import defaultRenderHeaderCell from './renderHeaderCell';
+
+const cellSortableClassname = css`
+  @layer rdg.HeaderCell {
+    cursor: pointer;
+  }
+`;
 
 const cellResizable = css`
-  touch-action: none;
+  @layer rdg.HeaderCell {
+    touch-action: none;
+  }
+`;
 
-  &::after {
-    content: '';
+const cellResizableClassname = `rdg-cell-resizable ${cellResizable}`;
+
+export const resizeHandleClassname = css`
+  @layer rdg.HeaderCell {
     cursor: col-resize;
     position: absolute;
     inset-block-start: 0;
@@ -20,14 +38,10 @@ const cellResizable = css`
   }
 `;
 
-const cellResizableClassname = `rdg-cell-resizable ${cellResizable}`;
-
 type SharedHeaderRowProps<R, SR> = Pick<
   HeaderRowProps<R, SR, React.Key>,
   | 'sortColumns'
   | 'onSortColumnsChange'
-  | 'allRowsSelected'
-  | 'onAllRowsSelectionChange'
   | 'selectCell'
   | 'onColumnResize'
   | 'shouldFocusGrid'
@@ -37,6 +51,7 @@ type SharedHeaderRowProps<R, SR> = Pick<
 export interface HeaderCellProps<R, SR> extends SharedHeaderRowProps<R, SR> {
   column: CalculatedColumn<R, SR>;
   colSpan: number | undefined;
+  rowIdx: number;
   isCellSelected: boolean;
   headerInx?: number;
 }
@@ -44,10 +59,9 @@ export interface HeaderCellProps<R, SR> extends SharedHeaderRowProps<R, SR> {
 export default function HeaderCell<R, SR>({
   column,
   colSpan,
+  rowIdx,
   isCellSelected,
   onColumnResize,
-  allRowsSelected,
-  onAllRowsSelectionChange,
   sortColumns,
   onSortColumnsChange,
   selectCell,
@@ -56,7 +70,8 @@ export default function HeaderCell<R, SR>({
   headerInx
 }: HeaderCellProps<R, SR>) {
   const isRtl = direction === 'rtl';
-  const { ref, tabIndex, onFocus } = useRovingCellRef(isCellSelected);
+  const rowSpan = getHeaderCellRowSpan(column, rowIdx);
+  const { tabIndex, childTabIndex, onFocus } = useRovingTabIndex(isCellSelected);
   const sortIndex = sortColumns?.findIndex((sort) => sort.columnKey === column.key);
   const sortColumn =
     sortIndex !== undefined && sortIndex > -1 ? sortColumns![sortIndex] : undefined;
@@ -66,10 +81,11 @@ export default function HeaderCell<R, SR>({
     sortDirection && !priority ? (sortDirection === 'ASC' ? 'ascending' : 'descending') : undefined;
 
   const className = getCellClassname(column, column.headerCellClass, {
+    [cellSortableClassname]: column.sortable,
     [cellResizableClassname]: column.resizable
   });
 
-  const HeaderRenderer = column.headerRenderer ?? DefaultHeaderRenderer;
+  const renderHeaderCell = column.renderHeaderCell ?? defaultRenderHeaderCell;
 
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (event.pointerType === 'mouse' && event.buttons !== 1) {
@@ -77,16 +93,14 @@ export default function HeaderCell<R, SR>({
     }
 
     const { currentTarget, pointerId } = event;
-    const { right, left } = currentTarget.getBoundingClientRect();
+    const headerCell = currentTarget.parentElement!;
+    const { right, left } = headerCell.getBoundingClientRect();
     const offset = isRtl ? event.clientX - left : right - event.clientX;
 
-    if (offset > 11) {
-      // +1px to account for the border size
-      return;
-    }
-
     function onPointerMove(event: PointerEvent) {
-      const { right, left } = currentTarget.getBoundingClientRect();
+      // prevents text selection in Chrome, which fixes scrolling the grid while dragging, and fixes re-size on an autosized column
+      event.preventDefault();
+      const { right, left } = headerCell.getBoundingClientRect();
       const width = isRtl ? right + offset - event.clientX : event.clientX + offset - left;
       if (width > 0) {
         onColumnResize(column, clampColumnWidth(width, column));
@@ -116,8 +130,8 @@ export default function HeaderCell<R, SR>({
     } else {
       let nextSortColumn: SortColumn | undefined;
       if (
-        (sortDescendingFirst && sortDirection === 'DESC') ||
-        (!sortDescendingFirst && sortDirection === 'ASC')
+        (sortDescendingFirst === true && sortDirection === 'DESC') ||
+        (sortDescendingFirst !== true && sortDirection === 'ASC')
       ) {
         nextSortColumn = {
           columnKey: column.key,
@@ -140,27 +154,31 @@ export default function HeaderCell<R, SR>({
     }
   }
 
-  function onClick() {
-    selectCell(column.idx);
+  function onClick(event: React.MouseEvent<HTMLSpanElement>) {
+    selectCell({ idx: column.idx, rowIdx });
+
+    if (column.sortable) {
+      onSort(event.ctrlKey || event.metaKey);
+    }
   }
 
-  function onDoubleClick(event: React.MouseEvent<HTMLDivElement>) {
-    const { right, left } = event.currentTarget.getBoundingClientRect();
-    const offset = isRtl ? event.clientX - left : right - event.clientX;
-
-    if (offset > 11) {
-      // +1px to account for the border size
-      return;
-    }
-
-    onColumnResize(column, 'auto');
+  function onDoubleClick() {
+    onColumnResize(column, 'max-content');
   }
 
   function handleFocus(event: React.FocusEvent<HTMLDivElement>) {
     onFocus?.(event);
     if (shouldFocusGrid) {
       // Select the first header cell if there is no selected cell
-      selectCell(0);
+      selectCell({ idx: 0, rowIdx });
+    }
+  }
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLSpanElement>) {
+    if (event.key === ' ' || event.key === 'Enter') {
+      // prevent scrolling
+      event.preventDefault();
+      onSort(event.ctrlKey || event.metaKey);
     }
   }
 
@@ -168,23 +186,22 @@ export default function HeaderCell<R, SR>({
     <div
       role="columnheader"
       aria-colindex={column.idx + 1}
+      aria-colspan={colSpan}
+      aria-rowspan={rowSpan}
       aria-selected={isCellSelected}
       aria-sort={ariaSort}
-      aria-colspan={colSpan}
-      ref={ref}
       // set the tabIndex to 0 when there is no selected cell so grid can receive focus
       tabIndex={shouldFocusGrid ? 0 : tabIndex}
       className={className}
       style={{
-        ...getCellStyle(column, colSpan),
-        minWidth: column.minWidth,
-        maxWidth: column.maxWidth ?? undefined
+        ...getHeaderCellStyle(column, rowIdx, rowSpan),
+        ...getCellStyle(column, colSpan)
       }}
       onFocus={handleFocus}
       onClick={onClick}
-      onDoubleClick={column.resizable ? onDoubleClick : undefined}
-      onPointerDown={column.resizable ? onPointerDown : undefined}
+      onKeyDown={column.sortable ? onKeyDown : undefined}
     >
+<<<<<<< HEAD
       <HeaderRenderer
         column={column}
         sortDirection={sortDirection}
@@ -195,6 +212,23 @@ export default function HeaderCell<R, SR>({
         isCellSelected={isCellSelected}
         headerInx={headerInx}
       />
+=======
+      {renderHeaderCell({
+        column,
+        sortDirection,
+        priority,
+        tabIndex: childTabIndex
+      })}
+
+      {column.resizable && (
+        <div
+          className={resizeHandleClassname}
+          onClick={stopPropagation}
+          onDoubleClick={onDoubleClick}
+          onPointerDown={onPointerDown}
+        />
+      )}
+>>>>>>> ee67c19256aa837a02149140b22fd69b34ff7e23
     </div>
   );
 }
